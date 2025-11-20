@@ -17,48 +17,97 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class CatalogoCuentas {
+
     private List<CuentaContable> cuentas;
 
     public CatalogoCuentas() {
         cuentas = new ArrayList<>();
         cargarDesdeExcel("catalogo_cuentas.xlsx");
+        // O puedes cargar el catálogo combinado:
+        // cargarDesdeExcel("catalogo_combinado.xlsx");
     }
 
     public List<CuentaContable> getCuentas() {
         return cuentas;
     }
 
-    public void cargarDesdeExcel(String rutaArchivo) {
-        try (FileInputStream fis = new FileInputStream(rutaArchivo);
-             Workbook workbook = new XSSFWorkbook(fis)) {
+    /**
+     * Lee el archivo Excel y crea las cuentas contables.
+     */
+    private void cargarDesdeExcel(String nombreArchivo) {
+        try {
+            File archivo = new File(nombreArchivo);
+            if (!archivo.exists()) {
+                System.out.println("⚠️ No se encontró el archivo: " + nombreArchivo);
+                return;
+            }
 
+            FileInputStream entrada = new FileInputStream(archivo);
+            Workbook workbook = new XSSFWorkbook(entrada);
             Sheet hoja = workbook.getSheetAt(0);
-            int filaInicio = 1; // omitir encabezado
 
-            for (int i = filaInicio; i <= hoja.getLastRowNum(); i++) {
+            for (int i = 1; i <= hoja.getLastRowNum(); i++) {  // Saltar encabezado
                 Row fila = hoja.getRow(i);
                 if (fila == null) continue;
 
-                Cell cCodigo = fila.getCell(0);
-                Cell cNombre = fila.getCell(1);
-                Cell cTipo = fila.getCell(2);
+                // Obtener valores como texto aunque la celda sea numérica
+                String codigo = obtenerTexto(fila.getCell(0));
+                String nombre = obtenerTexto(fila.getCell(1));
+                String tipo   = obtenerTexto(fila.getCell(2));
+                String grupo  = obtenerTexto(fila.getCell(3));
 
-                if (cCodigo == null || cNombre == null || cTipo == null) continue;
+                if (codigo == null || nombre == null) continue;
 
-                String codigo = cCodigo.getStringCellValue().trim();
-                String nombre = cNombre.getStringCellValue().trim();
-                String tipo = cTipo.getStringCellValue().trim();
-
-                if (!codigo.isEmpty() && !nombre.isEmpty() && !tipo.isEmpty()) {
-                    cuentas.add(new CuentaContable(codigo, nombre, tipo));
-                }
+                CuentaContable cuenta = new CuentaContable(codigo, nombre, tipo, grupo);
+                cuentas.add(cuenta);
             }
 
-            System.out.println("Catálogo de cuentas cargado desde Excel: " + cuentas.size() + " cuentas.");
-        } catch (FileNotFoundException e) {
-            System.err.println("⚠️ No se encontró el archivo Excel: " + rutaArchivo);
-        } catch (IOException e) {
+            workbook.close();
+            entrada.close();
+
+            System.out.println("✔️ Catálogo cargado: " + cuentas.size() + " cuentas");
+
+        } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Convierte cualquier celda a texto, evitando errores comunes de POI.
+     */
+    private String obtenerTexto(Cell celda) {
+        if (celda == null) return null;
+
+        switch (celda.getCellType()) {
+
+            case STRING:
+                return celda.getStringCellValue().trim();
+
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(celda)) {
+                    return celda.getDateCellValue().toString();
+                } else {
+                    // Quitar .0 para códigos numéricos
+                    double val = celda.getNumericCellValue();
+                    if (val == (int) val)
+                        return String.valueOf((int) val);
+                    else
+                        return String.valueOf(val);
+                }
+
+            case BOOLEAN:
+                return String.valueOf(celda.getBooleanCellValue());
+
+            case FORMULA:
+                try {
+                    return celda.getStringCellValue();
+                } catch (Exception e) {
+                    return String.valueOf(celda.getNumericCellValue());
+                }
+
+            case BLANK:
+            default:
+                return null;
         }
     }
 }

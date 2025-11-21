@@ -14,6 +14,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.List;
 
 public class UIPrincipal extends JFrame {
@@ -26,6 +27,7 @@ public class UIPrincipal extends JFrame {
     
     public UIPrincipal() {
         catalogo = new CatalogoCuentas();
+        //catalogo.setCuentas(this.cargarCuentasPrueba());
         initUI();
     }
 
@@ -210,5 +212,49 @@ public class UIPrincipal extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new UIPrincipal().setVisible(true));
     }
+    
+    public static List<CuentaContable> cargarCuentasPrueba() {
+
+    List<CuentaContable> cuentas = new ArrayList<>();
+
+    cuentas.add(new CuentaContable("4002", "Ventas Totales", "Ingreso", "Ventas", 1950000));
+    cuentas.add(new CuentaContable("4101", "Devoluciones sobre ventas", "Gasto", "Ventas – Deducciones", 30000));
+    cuentas.add(new CuentaContable("4102", "Descuentos sobre ventas", "Gasto", "Ventas – Deducciones", 20000));
+
+    cuentas.add(new CuentaContable("5001", "Inventario inicial", "Gasto", "Costo de ventas", 1250000));
+    cuentas.add(new CuentaContable("5003", "Compras", "Gasto", "Costo de ventas", 800000));
+    cuentas.add(new CuentaContable("5102", "Gastos de compra", "Gasto", "Costo de ventas", 20000));
+    cuentas.add(new CuentaContable("5004", "Devoluciones sobre compras", "Gasto", "Costo de ventas", 60000));
+    cuentas.add(new CuentaContable("5101", "Descuentos sobre compras", "Gasto", "Costo de ventas", 10000));
+    cuentas.add(new CuentaContable("5002", "Inventario final", "Gasto", "Costo de ventas", 600000));
+
+    cuentas.add(new CuentaContable("6001", "Renta del almacén", "Gasto", "Gastos de venta", 17000));
+    cuentas.add(new CuentaContable("6003", "Propaganda y publicidad", "Gasto", "Gastos de venta", 9000));
+    cuentas.add(new CuentaContable("6011", "Sueldos de agentes y dependientes", "Gasto", "Gastos de venta", 32000));
+    cuentas.add(new CuentaContable("6004", "Comisiones de agentes", "Gasto", "Gastos de venta", 16000));
+    cuentas.add(new CuentaContable("8005", "Consumo de luz de almacén", "Gasto", "Gastos de venta", 1000));
+
+    cuentas.add(new CuentaContable("6006", "Renta de oficinas", "Gasto", "Gastos de administración", 12000));
+    cuentas.add(new CuentaContable("6007", "Sueldos del personal de oficinas", "Gasto", "Gastos de administración", 43000));
+    cuentas.add(new CuentaContable("6008", "Papelería y útiles", "Gasto", "Gastos de administración", 3000));
+    cuentas.add(new CuentaContable("6009", "Consumo de luz de oficinas", "Gasto", "Gastos de administración", 2000));
+
+    cuentas.add(new CuentaContable("7005", "Intereses cobrados", "Ingreso", "Productos financieros", 7000));
+
+    cuentas.add(new CuentaContable("8006", "Pérdida", "Gasto", "Gastos financieros", 5000));
+    cuentas.add(new CuentaContable("8007", "Pérdida en venta de acciones", "Gasto", "Otros gastos", 6000));
+    cuentas.add(new CuentaContable("8003", "Pérdida en venta de mobiliario", "Gasto", "Otros gastos", 20000));
+
+    cuentas.add(new CuentaContable("8004", "Comisiones cobradas", "Ingreso", "Otros productos", 2000));
+    cuentas.add(new CuentaContable("8008", "Dividendos cobrados", "Ingreso", "Otros productos", 4000));
+
+    cuentas.add(new CuentaContable("7004", "Intereses pagados", "Gasto", "Gastos financieros", 5000));
+    cuentas.add(new CuentaContable("7002", "Pérdida en cambios", "Gasto", "Productos financieros", 5000));
+
+    return cuentas;
+}
+    
+    
+    
 }
 

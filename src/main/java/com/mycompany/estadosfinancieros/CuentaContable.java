@@ -23,6 +23,13 @@ public class CuentaContable {
         this.grupo = grupo;
         this.saldo = 0.0;
     }
+    public CuentaContable(String codigo, String nombre, String tipo, String grupo, double saldo) {
+        this.codigo = codigo;
+        this.nombre = nombre;
+        this.tipo = tipo;
+        this.grupo = grupo;
+        this.saldo = saldo;
+    }
 
     // ====== GETTERS ======
     public String getCodigo() {

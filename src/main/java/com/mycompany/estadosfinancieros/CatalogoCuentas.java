@@ -23,12 +23,14 @@ public class CatalogoCuentas {
     public CatalogoCuentas() {
         cuentas = new ArrayList<>();
         cargarDesdeExcel("catalogo_cuentas.xlsx");
-        // O puedes cargar el catálogo combinado:
-        // cargarDesdeExcel("catalogo_combinado.xlsx");
     }
 
     public List<CuentaContable> getCuentas() {
         return cuentas;
+    }
+
+    public void setCuentas(List<CuentaContable> cuentas) {
+        this.cuentas = cuentas;
     }
 
     /**

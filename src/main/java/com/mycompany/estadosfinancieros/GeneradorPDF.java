@@ -361,7 +361,7 @@ private static void generarSeccionResultados(Document doc, List<CuentaContable> 
     // ==========================
     //   IMPUESTOS (PORCENTAJE FIJO)
     // ==========================
-    double ISR = utilidadAntesISRPTU * 0.30;  // 30%
+    double ISR = utilidadAntesISRPTU * 0.33;  // 30%
     double PTU = utilidadAntesISRPTU * 0.10;  // 10%
 
     // ==========================
@@ -452,7 +452,7 @@ private static void generarSeccionResultados(Document doc, List<CuentaContable> 
         doc.add(new Paragraph("Utilidad antes de ISR y PTU ............ $" + utilidadAntesISRPTU, bold14));
 
         // IMPUESTOS
-        doc.add(new Paragraph("ISR (30%) ............ $" + ISR, textoFont));
+        doc.add(new Paragraph("ISR (33%) ............ $" + ISR, textoFont));
         doc.add(new Paragraph("PTU (10%) ............ $" + PTU, textoFont));
 
         doc.add(new Paragraph("\nUTILIDAD NETA ............ $" + utilidadNeta, bold16));
@@ -473,47 +473,73 @@ private static void generarSeccionResultados(Document doc, List<CuentaContable> 
     PdfPCell der = new PdfPCell();
     der.setBorder(Rectangle.NO_BORDER);
 
-    // ----------- COLUMNA IZQUIERDA: INGRESOS -----------
-    izq.addElement(new Paragraph("VENTAS", seccionFont));
+    // ----------- COLUMNA IZQUIERDA: DEBE -----------
+    
+     for (CuentaContable c : deducciones)
+        izq.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + "  $" + c.getSaldo(), textoFont));
+    izq.addElement(new Paragraph("Compras: $" + compras, textoFont));
+    izq.addElement(new Paragraph("Gastos de compra: $" + gastosCompra, textoFont));
+    izq.addElement(new Paragraph("Compras totales: $" + comprasTotales, textoFont));
+    
+    izq.addElement(new Paragraph("Compras netas: $" + comprasNetas, textoFont));
+    izq.addElement(new Paragraph("Inventario inicial: $" + invInicial, textoFont));
+    izq.addElement(new Paragraph("Total mercancía: $" + totalMercancia, textoFont));
+    
+    izq.addElement(new Paragraph("Costo de ventas: $" + costoVentasFinal, bold12));
+
+    izq.addElement(new Paragraph("Utilidad bruta: $" + utilidadBruta, bold12));
+    
+     // GASTOS DE OPERACIÓN
+    izq.addElement(new Paragraph("\nGASTOS DE OPERACIÓN", seccionFont));
+
+    izq.addElement(new Paragraph("Gastos de venta:", textoFont));
+    for (CuentaContable c : gastosVenta)
+        izq.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
+    izq.addElement(new Paragraph("Total gastos de venta: $" + totalGastosVenta, textoFont));
+
+    izq.addElement(new Paragraph("\nGastos de administración:", textoFont));
+    for (CuentaContable c : gastosAdmin)
+        izq.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
+    izq.addElement(new Paragraph("Total gastos de administración: $" + totalGastosAdmin, textoFont));
+
+    izq.addElement(new Paragraph("Total gastos de operación: $" + gastosOperacion, bold12));
+    
+   izq.addElement(new Paragraph("\nGASTOS FINANCIEROS", seccionFont));
+    for (CuentaContable c : gastosFin)
+        izq.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
+    izq.addElement(new Paragraph("Total gastos financieros: $" + totalFinancieroGto, textoFont));
+
+    // OTROS GASTOS
+    izq.addElement(new Paragraph("\nOTROS GASTOS", seccionFont));
+    for (CuentaContable c : otrosGastos)
+        izq.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
+    izq.addElement(new Paragraph("Total otros gastos: $" + totalOtrosGastos, textoFont));
+    
+    izq.addElement(new Paragraph("ISR (33%): $" + ISR, textoFont));
+    izq.addElement(new Paragraph("PTU (10%): $" + PTU, textoFont));
+
+    // ----------- COLUMNA DERECHA: HABER -----------
+    
+     der.addElement(new Paragraph("VENTAS", seccionFont));
     for (CuentaContable c : ventas)
-        izq.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + "  $" + c.getSaldo(), textoFont));
-    for (CuentaContable c : deducciones)
-        izq.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + "  $" + c.getSaldo(), textoFont));
-    izq.addElement(new Paragraph("Ventas netas: $" + ventasNetas, bold12));
+        der.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + "  $" + c.getSaldo(), textoFont));
+   
+    der.addElement(new Paragraph("Ventas netas: $" + ventasNetas, bold12));
+    
+    der.addElement(new Paragraph("Devoluciones sobre compras: $" + devCompra, textoFont));
+    der.addElement(new Paragraph("Descuentos sobre compras: $" + descCompra, textoFont));
+    
+    der.addElement(new Paragraph("Inventario final: $" + invFinal, textoFont));
 
     
+    
+    
+    
+    
+   
 
 
-    // ----------- COLUMNA DERECHA: EGRESOS -----------
-    der.addElement(new Paragraph("COSTO DE VENTAS", seccionFont));
-    der.addElement(new Paragraph("Compras: $" + compras, textoFont));
-    der.addElement(new Paragraph("Gastos de compra: $" + gastosCompra, textoFont));
-    der.addElement(new Paragraph("Compras totales: $" + comprasTotales, textoFont));
-    der.addElement(new Paragraph("Devoluciones: $" + devCompra, textoFont));
-    der.addElement(new Paragraph("Descuentos: $" + descCompra, textoFont));
-    der.addElement(new Paragraph("Compras netas: $" + comprasNetas, textoFont));
-    der.addElement(new Paragraph("Inventario inicial: $" + invInicial, textoFont));
-    der.addElement(new Paragraph("Total mercancía: $" + totalMercancia, textoFont));
-    der.addElement(new Paragraph("Inventario final: $" + invFinal, textoFont));
-    der.addElement(new Paragraph("Costo de ventas: $" + costoVentasFinal, bold12));
-
-    der.addElement(new Paragraph("Utilidad bruta: $" + utilidadBruta, bold12));
-
-
-    // GASTOS DE OPERACIÓN
-    der.addElement(new Paragraph("\nGASTOS DE OPERACIÓN", seccionFont));
-
-    der.addElement(new Paragraph("Gastos de venta:", textoFont));
-    for (CuentaContable c : gastosVenta)
-        der.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
-    der.addElement(new Paragraph("Total gastos de venta: $" + totalGastosVenta, textoFont));
-
-    der.addElement(new Paragraph("\nGastos de administración:", textoFont));
-    for (CuentaContable c : gastosAdmin)
-        der.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
-    der.addElement(new Paragraph("Total gastos de administración: $" + totalGastosAdmin, textoFont));
-
-    der.addElement(new Paragraph("Total gastos de operación: $" + gastosOperacion, bold12));
+   
 
 
     // ÁREA FINANCIERA
@@ -522,10 +548,7 @@ private static void generarSeccionResultados(Document doc, List<CuentaContable> 
         der.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
     der.addElement(new Paragraph("Total productos financieros: $" + totalFinancieroProd, textoFont));
 
-    der.addElement(new Paragraph("\nGASTOS FINANCIEROS", seccionFont));
-    for (CuentaContable c : gastosFin)
-        der.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
-    der.addElement(new Paragraph("Total gastos financieros: $" + totalFinancieroGto, textoFont));
+    
 
     der.addElement(new Paragraph("Total financiero: $" + totalFinanciero, bold12));
 
@@ -533,11 +556,7 @@ private static void generarSeccionResultados(Document doc, List<CuentaContable> 
     // UTILIDAD DE OPERACIÓN
     der.addElement(new Paragraph("\nUtilidad de operación: $" + utilidadOperacion, bold14));
 
-    // OTROS GASTOS
-    der.addElement(new Paragraph("\nOTROS GASTOS", seccionFont));
-    for (CuentaContable c : otrosGastos)
-        der.addElement(new Paragraph(c.getCodigo() + " " + c.getNombre() + " $" + c.getSaldo(), textoFont));
-    der.addElement(new Paragraph("Total otros gastos: $" + totalOtrosGastos, textoFont));
+    
 
     // OTROS PRODUCTOS
     der.addElement(new Paragraph("\nOTROS PRODUCTOS", seccionFont));
@@ -549,8 +568,7 @@ private static void generarSeccionResultados(Document doc, List<CuentaContable> 
 
     der.addElement(new Paragraph("Utilidad antes ISR y PTU: $" + utilidadAntesISRPTU, bold14));
 
-    der.addElement(new Paragraph("ISR (30%): $" + ISR, textoFont));
-    der.addElement(new Paragraph("PTU (10%): $" + PTU, textoFont));
+    
 
     der.addElement(new Paragraph("UTILIDAD NETA: $" + utilidadNeta, bold16));
 
@@ -587,4 +605,7 @@ private static void generarSeccionResultados(Document doc, List<CuentaContable> 
 
         doc.add(tablaFirmas);
     }
+    
+    
+    
 }

@@ -1,115 +1,130 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// ARCHIVO 2: CatalogoCuentas.java
+// ══════════════════════════════════════════════════════════════════════════════
+
 package com.mycompany.estadosfinancieros;
-
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
-/**
- *
- * @author ripxs
- */
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class CatalogoCuentas {
-
     private List<CuentaContable> cuentas;
+    private String mensajeError;
+    private boolean cargadoCorrectamente;
 
     public CatalogoCuentas() {
         cuentas = new ArrayList<>();
+        mensajeError = null;
+        cargadoCorrectamente = false;
         cargarDesdeExcel("catalogo_cuentas.xlsx");
+    }
+
+    public CatalogoCuentas(String rutaArchivo) {
+        cuentas = new ArrayList<>();
+        mensajeError = null;
+        cargadoCorrectamente = false;
+        cargarDesdeExcel(rutaArchivo);
+    }
+    
+    public void setCuentas(List<CuentaContable> cuentas) {
+        this.cuentas = cuentas;
     }
 
     public List<CuentaContable> getCuentas() {
         return cuentas;
     }
 
-    public void setCuentas(List<CuentaContable> cuentas) {
-        this.cuentas = cuentas;
+    public boolean isCargadoCorrectamente() {
+        return cargadoCorrectamente;
     }
 
-    /**
-     * Lee el archivo Excel y crea las cuentas contables.
-     */
+    public String getMensajeError() {
+        return mensajeError;
+    }
+
+    public List<CuentaContable> getCuentasParaBalance() {
+        return cuentas.stream()
+                .filter(c -> c.getSaldo() > 0 && c.esParaBalance())
+                .toList();
+    }
+
+    public List<CuentaContable> getCuentasParaResultados() {
+        return cuentas.stream()
+                .filter(c -> c.getSaldo() > 0 && c.esParaResultados())
+                .toList();
+    }
+
+    public Optional<CuentaContable> buscarPorCodigo(String codigo) {
+        return cuentas.stream()
+                .filter(c -> c.getCodigo().equalsIgnoreCase(codigo))
+                .findFirst();
+    }
+
+    public void reiniciarSaldos() {
+        cuentas.forEach(c -> c.setSaldo(0));
+    }
+
     private void cargarDesdeExcel(String nombreArchivo) {
-        try {
-            File archivo = new File(nombreArchivo);
-            if (!archivo.exists()) {
-                System.out.println("⚠️ No se encontró el archivo: " + nombreArchivo);
-                return;
-            }
+        File archivo = new File(nombreArchivo);
+        
+        if (!archivo.exists()) {
+            mensajeError = "No se encontró el archivo: " + nombreArchivo;
+            System.err.println("⚠️ " + mensajeError);
+            return;
+        }
 
-            FileInputStream entrada = new FileInputStream(archivo);
-            Workbook workbook = new XSSFWorkbook(entrada);
+        try (FileInputStream entrada = new FileInputStream(archivo);
+             Workbook workbook = new XSSFWorkbook(entrada)) {
+            
             Sheet hoja = workbook.getSheetAt(0);
+            int cuentasCargadas = 0;
 
-            for (int i = 1; i <= hoja.getLastRowNum(); i++) {  // Saltar encabezado
+            for (int i = 1; i <= hoja.getLastRowNum(); i++) {
                 Row fila = hoja.getRow(i);
                 if (fila == null) continue;
 
-                // Obtener valores como texto aunque la celda sea numérica
                 String codigo = obtenerTexto(fila.getCell(0));
                 String nombre = obtenerTexto(fila.getCell(1));
                 String tipo   = obtenerTexto(fila.getCell(2));
                 String grupo  = obtenerTexto(fila.getCell(3));
 
-                if (codigo == null || nombre == null) continue;
+                if (codigo == null || codigo.isEmpty() || 
+                    nombre == null || nombre.isEmpty()) continue;
 
-                CuentaContable cuenta = new CuentaContable(codigo, nombre, tipo, grupo);
-                cuentas.add(cuenta);
+                cuentas.add(new CuentaContable(codigo, nombre, tipo, grupo));
+                cuentasCargadas++;
             }
 
-            workbook.close();
-            entrada.close();
-
-            System.out.println("✔️ Catálogo cargado: " + cuentas.size() + " cuentas");
+            cargadoCorrectamente = true;
+            System.out.println("✔️ Catálogo cargado: " + cuentasCargadas + " cuentas");
 
         } catch (Exception e) {
+            mensajeError = "Error al leer el archivo: " + e.getMessage();
+            System.err.println("❌ " + mensajeError);
             e.printStackTrace();
         }
     }
 
-    /**
-     * Convierte cualquier celda a texto, evitando errores comunes de POI.
-     */
     private String obtenerTexto(Cell celda) {
         if (celda == null) return null;
-
-        switch (celda.getCellType()) {
-
-            case STRING:
-                return celda.getStringCellValue().trim();
-
-            case NUMERIC:
-                if (DateUtil.isCellDateFormatted(celda)) {
-                    return celda.getDateCellValue().toString();
-                } else {
-                    // Quitar .0 para códigos numéricos
-                    double val = celda.getNumericCellValue();
-                    if (val == (int) val)
-                        return String.valueOf((int) val);
-                    else
-                        return String.valueOf(val);
-                }
-
-            case BOOLEAN:
-                return String.valueOf(celda.getBooleanCellValue());
-
-            case FORMULA:
-                try {
-                    return celda.getStringCellValue();
-                } catch (Exception e) {
-                    return String.valueOf(celda.getNumericCellValue());
-                }
-
-            case BLANK:
-            default:
-                return null;
-        }
+        return switch (celda.getCellType()) {
+            case STRING -> celda.getStringCellValue().trim();
+            case NUMERIC -> {
+                if (DateUtil.isCellDateFormatted(celda))
+                    yield celda.getDateCellValue().toString();
+                double val = celda.getNumericCellValue();
+                yield (val == (int) val) ? String.valueOf((int) val) : String.valueOf(val);
+            }
+            case BOOLEAN -> String.valueOf(celda.getBooleanCellValue());
+            case FORMULA -> {
+                try { yield celda.getStringCellValue(); }
+                catch (Exception e) { yield String.valueOf(celda.getNumericCellValue()); }
+            }
+            default -> null;
+        };
     }
 }

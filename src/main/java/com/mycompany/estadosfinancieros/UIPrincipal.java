@@ -2,109 +2,137 @@ package com.mycompany.estadosfinancieros;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.filechooser.FileNameExtensionFilter; // IMPORTANTE: Nuevo import
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class UIPrincipal extends JFrame {
     private CatalogoCuentas catalogo;
     
+    // COLORES INSTITUCIONALES IPN
+    // Guinda aproximado (Pantone 222 C)
+    private final Color COLOR_GUINDA = new Color(109, 13, 30); 
+    private final Color COLOR_BLANCO = Color.WHITE;
+    private final Color COLOR_NEGRO = Color.BLACK;
+
     // SELECTORES EN CASCADA
-    private JComboBox<String> cmbTipoReporte; // Balance vs Resultados
-    private JComboBox<String> cmbCategoria;   // Activo, Pasivo, Capital
-    private JComboBox<String> cmbGrupo;       // Circulante, Fijo, Diferido...
-    private JComboBox<CuentaContable> cmbCuenta; // La cuenta final (Caja, etc.)
+    private JComboBox<String> cmbTipoReporte; 
+    private JComboBox<String> cmbCategoria;   
+    private JComboBox<String> cmbGrupo;       
+    private JComboBox<CuentaContable> cmbCuenta; 
     
     private JTextField txtMonto;
     private DefaultTableModel modeloTabla;
     private JTable tabla;
     private JLabel lblStatus;
     
-    // BANDERA PARA EVITAR EVENTOS MIENTRAS LLENAMOS COMBOS
     private boolean isUpdating = false;
 
     public UIPrincipal() {
         catalogo = new CatalogoCuentas();
-        //catalogo.setCuentas(this.cargarCuentasPrueba());
         initUI();
         verificarCatalogo();
         inicializarLogicaCascada();
     }
 
     private void initUI() {
-        setTitle("Sistema Contable - Finanzas");
+        setTitle("Sistema Contable ARP - Finanzas IPN");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1100, 700);
+        setSize(1100, 750); 
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
+        
+        getContentPane().setBackground(COLOR_GUINDA);
 
-        // --- PANEL SUPERIOR (CAPTURA) ---
+        // --- 0. PANEL ENCABEZADO ---
+        JPanel pnlEncabezado = new JPanel(new BorderLayout());
+        pnlEncabezado.setBackground(COLOR_GUINDA);
+        pnlEncabezado.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
+
+        // Cargar Logo IPN (Fijo en la interfaz)
+        JLabel lblLogo = new JLabel();
+        try {
+            ImageIcon icon = new ImageIcon("logo_ipn.png"); 
+            Image img = icon.getImage().getScaledInstance(65, 65, Image.SCALE_SMOOTH);
+            lblLogo.setIcon(new ImageIcon(img));
+        } catch (Exception e) {
+            lblLogo.setText("[LOGO IPN]");
+            lblLogo.setForeground(COLOR_BLANCO);
+        }
+        
+        JLabel lblTituloPrincipal = new JLabel("SISTEMA DE ESTADOS FINANCIEROS", SwingConstants.CENTER);
+        lblTituloPrincipal.setFont(new Font("Arial", Font.BOLD, 24));
+        lblTituloPrincipal.setForeground(COLOR_BLANCO);
+
+        pnlEncabezado.add(lblLogo, BorderLayout.WEST);
+        pnlEncabezado.add(lblTituloPrincipal, BorderLayout.CENTER);
+        
+        JPanel dummy = new JPanel(); 
+        dummy.setPreferredSize(new Dimension(60, 60));
+        dummy.setOpaque(false);
+        pnlEncabezado.add(dummy, BorderLayout.EAST);
+
+        // --- 1. PANEL SUPERIOR (CAPTURA) ---
         JPanel pnlEntrada = new JPanel(new GridBagLayout());
-        pnlEntrada.setBorder(BorderFactory.createTitledBorder("Captura de Movimientos"));
+        pnlEntrada.setBackground(COLOR_GUINDA); 
+        pnlEntrada.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(COLOR_BLANCO), 
+                "Captura de Movimientos", 
+                0, 0, 
+                new Font("Arial", Font.BOLD, 12), 
+                COLOR_BLANCO));
+        
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // FILA 0: TIPO DE REPORTE
+        // FILA 0
         gbc.gridx = 0; gbc.gridy = 0;
-        pnlEntrada.add(new JLabel("1. Reporte:"), gbc);
+        pnlEntrada.add(crearLabel("1. Reporte:"), gbc);
         
         cmbTipoReporte = new JComboBox<>(new String[]{"Balance General", "Estado de Resultados"});
         gbc.gridx = 1; gbc.weightx = 0.5;
         pnlEntrada.add(cmbTipoReporte, gbc);
 
-        // FILA 0 (Lado derecho): CATEGORIA (Activo/Pasivo...)
         gbc.gridx = 2; gbc.weightx = 0;
-        pnlEntrada.add(new JLabel("2. Categoría:"), gbc);
+        pnlEntrada.add(crearLabel("2. Categoría:"), gbc);
         
         cmbCategoria = new JComboBox<>();
         gbc.gridx = 3; gbc.weightx = 0.5;
         pnlEntrada.add(cmbCategoria, gbc);
 
-        // FILA 1: GRUPO (Circulante/Fijo...)
+        // FILA 1
         gbc.gridx = 0; gbc.gridy = 1;
-        pnlEntrada.add(new JLabel("3. Grupo:"), gbc);
+        pnlEntrada.add(crearLabel("3. Grupo:"), gbc);
         
         cmbGrupo = new JComboBox<>();
         gbc.gridx = 1; gbc.weightx = 0.5;
         pnlEntrada.add(cmbGrupo, gbc);
 
-        // FILA 1 (Lado derecho): CUENTA ESPECÍFICA
         gbc.gridx = 2; 
-        pnlEntrada.add(new JLabel("4. Cuenta:"), gbc);
+        pnlEntrada.add(crearLabel("4. Cuenta:"), gbc);
         
         cmbCuenta = new JComboBox<>();
-        cmbCuenta.setMaximumRowCount(15); // Para que no tape la pantalla si hay muchas
+        cmbCuenta.setMaximumRowCount(15);
         gbc.gridx = 3; gbc.weightx = 0.5;
         pnlEntrada.add(cmbCuenta, gbc);
 
-        // FILA 2: MONTO Y BOTÓN
+        // FILA 2
         gbc.gridx = 0; gbc.gridy = 2;
-        pnlEntrada.add(new JLabel("Monto ($):"), gbc);
+        pnlEntrada.add(crearLabel("Monto ($):"), gbc);
 
         txtMonto = new JTextField();
         gbc.gridx = 1; 
         pnlEntrada.add(txtMonto, gbc);
         
-        gbc.gridx = 4; gbc.weightx = 0;
-        JButton btnAgregar = new JButton("AGREGAR DATOS");
-        
-        // 1. COLORES VISIBLES
-        btnAgregar.setFont(new Font("Arial", Font.BOLD, 12));
-        btnAgregar.setBackground(Color.ORANGE); // Fondo Naranja
-        btnAgregar.setForeground(Color.BLACK);  // Texto Negro
-        btnAgregar.setOpaque(true);
-        btnAgregar.setBorderPainted(false);
-
-        // 2. POSICIÓN "CENTRADA" (Como antes)
-        // Esto hace que el botón ocupe las dos columnas de la derecha en la fila de abajo
         gbc.gridx = 2; 
-        gbc.gridwidth = 2; // Abarca 2 espacios para verse centrado/ancho
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Se estira a lo ancho
+        gbc.gridwidth = 2; 
+        
+        JButton btnAgregar = new JButton("AGREGAR DATOS");
+        estilizarBoton(btnAgregar); 
         
         btnAgregar.addActionListener(e -> agregarOActualizarCuenta());
         pnlEntrada.add(btnAgregar, gbc);
@@ -119,7 +147,6 @@ public class UIPrincipal extends JFrame {
         tabla.getColumnModel().getColumn(0).setPreferredWidth(70);
         tabla.getColumnModel().getColumn(1).setPreferredWidth(250);
         
-        // Eventos Tabla
         tabla.addKeyListener(new KeyAdapter() {
             @Override public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_DELETE) eliminarFilasSeleccionadas();
@@ -130,13 +157,18 @@ public class UIPrincipal extends JFrame {
         });
 
         JScrollPane scrollTabla = new JScrollPane(tabla);
+        scrollTabla.setBorder(BorderFactory.createLineBorder(COLOR_GUINDA, 2));
 
         // --- BOTONES INFERIORES ---
         JPanel pnlBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        pnlBotones.setBackground(COLOR_GUINDA); 
+
         JButton btnGenerar = new JButton("GENERAR PDF");
         JButton btnLimpiar = new JButton("Limpiar Todo");
         
-        btnGenerar.setFont(new Font("Arial", Font.BOLD, 14));
+        estilizarBoton(btnGenerar);
+        estilizarBoton(btnLimpiar);
+        
         btnGenerar.addActionListener(e -> generarReporteActual());
         btnLimpiar.addActionListener(e -> limpiarTodo());
 
@@ -144,40 +176,64 @@ public class UIPrincipal extends JFrame {
         pnlBotones.add(btnLimpiar);
 
         lblStatus = new JLabel("Bienvenido al Sistema Contable");
+        lblStatus.setForeground(COLOR_BLANCO); 
+        lblStatus.setFont(new Font("Arial", Font.ITALIC, 12));
         lblStatus.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        
         JPanel pnlInferior = new JPanel(new BorderLayout());
+        pnlInferior.setBackground(COLOR_GUINDA);
         pnlInferior.add(pnlBotones, BorderLayout.CENTER);
         pnlInferior.add(lblStatus, BorderLayout.SOUTH);
 
-        // Listeners de Interfaz
-        btnAgregar.addActionListener(e -> agregarOActualizarCuenta());
+        // Listeners
         txtMonto.addActionListener(e -> agregarOActualizarCuenta());
-
-        // Listeners de Combos (Lógica Cascada)
         cmbTipoReporte.addActionListener(e -> { if(!isUpdating) cambiarModoReporte(); });
         cmbCategoria.addActionListener(e -> { if(!isUpdating) cambiarCategoria(); });
         cmbGrupo.addActionListener(e -> { if(!isUpdating) cambiarGrupo(); });
 
-        add(pnlEntrada, BorderLayout.NORTH);
-        add(scrollTabla, BorderLayout.CENTER);
+        // Armado final
+        add(pnlEncabezado, BorderLayout.NORTH);
+        
+        JPanel pnlCentro = new JPanel(new BorderLayout(0, 10));
+        pnlCentro.setBackground(COLOR_GUINDA);
+        pnlCentro.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
+        pnlCentro.add(pnlEntrada, BorderLayout.NORTH);
+        pnlCentro.add(scrollTabla, BorderLayout.CENTER);
+        
+        add(pnlCentro, BorderLayout.CENTER);
         add(pnlInferior, BorderLayout.SOUTH);
     }
 
+    private JLabel crearLabel(String texto) {
+        JLabel l = new JLabel(texto);
+        l.setForeground(COLOR_BLANCO); 
+        l.setFont(new Font("Arial", Font.BOLD, 12));
+        return l;
+    }
+    
+    private void estilizarBoton(JButton btn) {
+        btn.setFont(new Font("Arial", Font.BOLD, 12));
+        btn.setBackground(COLOR_BLANCO); 
+        btn.setForeground(COLOR_NEGRO);  
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.GRAY, 1),
+            BorderFactory.createEmptyBorder(5, 15, 5, 15)
+        ));
+    }
+
     // ========================================================================
-    // LÓGICA DE COMBOS EN CASCADA
+    // LÓGICA DE NEGOCIO
     // ========================================================================
 
     private void inicializarLogicaCascada() {
-        cambiarModoReporte(); // Inicia el flujo
+        cambiarModoReporte(); 
     }
-
-// En UIPrincipal.java
 
     private void cambiarModoReporte() {
         isUpdating = true;
         String reporte = (String) cmbTipoReporte.getSelectedItem();
         cmbCategoria.removeAllItems();
-        
         modeloTabla.setRowCount(0); 
         lblStatus.setText("Modo cambiado a: " + reporte);
 
@@ -186,7 +242,6 @@ public class UIPrincipal extends JFrame {
             cmbCategoria.addItem("Pasivo");
             cmbCategoria.addItem("Capital Contable");
         } else {
-            // --- NUEVAS CATEGORÍAS DEL ESTADO DE RESULTADOS ---
             cmbCategoria.addItem("Ventas y Compras");
             cmbCategoria.addItem("Gastos de Operación");
             cmbCategoria.addItem("Otros"); 
@@ -204,7 +259,6 @@ public class UIPrincipal extends JFrame {
         if (cat == null) { isUpdating = false; return; }
 
         if ("Balance General".equals(reporte)) {
-            // ... (Lógica del Balance se queda igual) ...
             if ("Activo".equals(cat)) {
                 cmbGrupo.addItem("Activo Circulante");
                 cmbGrupo.addItem("Activo Fijo");
@@ -217,21 +271,17 @@ public class UIPrincipal extends JFrame {
                 cmbGrupo.addItem("Capital Contable");
             }
         } else {
-            // --- LÓGICA EXACTA DE TU LISTA PARA ESTADO DE RESULTADOS ---
-            
             if ("Ventas y Compras".equals(cat)) {
-                cmbGrupo.addItem("Ventas");   // 1.1
-                cmbGrupo.addItem("Compras");  // 1.2
-                
+                cmbGrupo.addItem("Ventas");
+                cmbGrupo.addItem("Compras");
             } else if ("Gastos de Operación".equals(cat)) {
-                cmbGrupo.addItem("Gastos de venta");           // 2.1
-                cmbGrupo.addItem("Gastos de administración");  // 2.2
-                cmbGrupo.addItem("Productos financieros");     // 2.3
-                cmbGrupo.addItem("Gastos financieros");        // 2.4
-                
+                cmbGrupo.addItem("Gastos de venta");
+                cmbGrupo.addItem("Gastos de administración");
+                cmbGrupo.addItem("Productos financieros");
+                cmbGrupo.addItem("Gastos financieros");
             } else if ("Otros".equals(cat)) {
-                cmbGrupo.addItem("Otros gastos");    // 3.1
-                cmbGrupo.addItem("Otros productos"); // 3.2
+                cmbGrupo.addItem("Otros gastos");
+                cmbGrupo.addItem("Otros productos");
             }
         }
         isUpdating = false;
@@ -246,29 +296,21 @@ public class UIPrincipal extends JFrame {
         cmbCuenta.removeAllItems();
 
         if (grupoSel != null) {
-            
             List<CuentaContable> filtradas = catalogo.getCuentas().stream()
                 .filter(c -> {
-                    // 1. Filtro: ¿Es para Balance o Resultados?
                     boolean tipoCorrecto = reporte.equals("Balance General") 
                                            ? c.esParaBalance() 
                                            : c.esParaResultados();
-
-                    // 2. Filtro: ¿Coincide el Grupo?
-                    // CORRECCIÓN AQUÍ: Es .getGrupo() en español
                     boolean grupoCorrecto = c.getGrupo() != null && 
                                             c.getGrupo().trim().equalsIgnoreCase(grupoSel.trim());
-                    
                     return tipoCorrecto && grupoCorrecto;
                 })
                 .collect(Collectors.toList());
 
-            // Llenar el combo
             for (CuentaContable c : filtradas) {
                 cmbCuenta.addItem(c);
             }
 
-            // Feedback visual
             if (filtradas.isEmpty()) {
                 lblStatus.setText("⚠️ 0 cuentas. En Excel busca en Grupo: '" + grupoSel + "'");
             } else {
@@ -284,8 +326,6 @@ public class UIPrincipal extends JFrame {
             if (sel == null) { mostrarError("Seleccione una cuenta válida."); return; }
 
             String textoMonto = txtMonto.getText().trim().replace(",", "");
-            //if (textoMonto.isEmpty()) { mostrarError("Ingrese un monto."); return; }
-
             double monto = Double.parseDouble(textoMonto);
             if (monto < 0) { mostrarError("El monto no puede ser negativo."); return; }
 
@@ -304,7 +344,7 @@ public class UIPrincipal extends JFrame {
             txtMonto.setText("");
             txtMonto.requestFocus();
         } catch (NumberFormatException ex) {
-            //mostrarError("Número inválido.");
+            mostrarError("Número inválido en monto.");
         }
     }
 
@@ -315,47 +355,53 @@ public class UIPrincipal extends JFrame {
         return -1;
     }
 
+    // --- MÉTODO PRINCIPAL MODIFICADO PARA SELECCIONAR LOGO ---
     private void generarReporteActual() {
         String modo = (String) cmbTipoReporte.getSelectedItem();
         
-        // Obtener cuentas (según el filtro seleccionado)
         List<CuentaContable> cuentas = modo.equals("Balance General")
             ? catalogo.getCuentasParaBalance()
             : catalogo.getCuentasParaResultados();
 
-        // Validar que existan datos
         if (cuentas.isEmpty()) { 
             mostrarError("No hay datos capturados para generar el " + modo); 
             return; 
         }
 
-        // Pedir datos de cabecera
+        // 1. Datos básicos
         String empresa = JOptionPane.showInputDialog(this, "Nombre de la empresa:");
         if (empresa == null || empresa.isBlank()) return;
 
-        // --- LÓGICA DE FORMATO CONDICIONAL ---
-        String tipoFormato = "Reporte"; // Valor por defecto (Vertical)
-
-        // Solo preguntamos el formato si es Balance General
+        String tipoFormato = "Reporte"; 
         if (modo.equals("Balance General")) {
             String[] formatos = {"Cuenta (Horizontal)", "Reporte (Vertical)"};
             String formatoSel = (String) JOptionPane.showInputDialog(this, "Seleccione el Formato:", "Opciones de Impresión", 
                     JOptionPane.QUESTION_MESSAGE, null, formatos, formatos[0]);
             
-            if (formatoSel == null) return; // Si cancela, no hacemos nada
+            if (formatoSel == null) return;
             tipoFormato = formatoSel.contains("Cuenta") ? "Cuenta" : "Reporte";
         }
-        // -------------------------------------
 
         String periodo = JOptionPane.showInputDialog(this, "Fecha / Periodo:");
-        
         String quienElaboro = JOptionPane.showInputDialog(this, "Nombre de quien Elaboró:");
         if (quienElaboro == null) quienElaboro = " ";
-        
         String quienAutorizo = JOptionPane.showInputDialog(this, "Nombre de quien Autorizó:");
         if (quienAutorizo == null) quienAutorizo = " ";
 
-        // Guardar archivo
+        // 2. PREGUNTAR POR EL LOGO
+        String rutaLogo = null;
+        int respuestaLogo = JOptionPane.showConfirmDialog(this, "¿Desea agregar un logo de la empresa al reporte?", "Logo Empresa", JOptionPane.YES_NO_OPTION);
+        if (respuestaLogo == JOptionPane.YES_OPTION) {
+            JFileChooser fileChooserLogo = new JFileChooser();
+            fileChooserLogo.setDialogTitle("Seleccione el Logo de la Empresa");
+            fileChooserLogo.setFileFilter(new FileNameExtensionFilter("Imágenes (JPG, PNG)", "jpg", "png", "jpeg"));
+            
+            if (fileChooserLogo.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                rutaLogo = fileChooserLogo.getSelectedFile().getAbsolutePath();
+            }
+        }
+
+        // 3. Guardar archivo PDF
         JFileChooser fc = new JFileChooser();
         fc.setSelectedFile(new File(modo.replace(" ", "_") + ".pdf"));
         
@@ -364,8 +410,8 @@ public class UIPrincipal extends JFrame {
                 String ruta = fc.getSelectedFile().getAbsolutePath();
                 if(!ruta.toLowerCase().endsWith(".pdf")) ruta += ".pdf";
                 
-                // Generar PDF
-                GeneradorPDF.generarPDF(empresa, modo, periodo, cuentas, tipoFormato, ruta, quienElaboro, quienAutorizo);
+                // --- SE PASA 'rutaLogo' AL GENERADOR ---
+                GeneradorPDF.generarPDF(empresa, modo, periodo, cuentas, tipoFormato, ruta, quienElaboro, quienAutorizo, rutaLogo);
                 
                 JOptionPane.showMessageDialog(this, "¡PDF Generado con éxito!");
                 try { Desktop.getDesktop().open(new File(ruta)); } catch(Exception e){}
@@ -387,7 +433,7 @@ public class UIPrincipal extends JFrame {
     private void eliminarFilasSeleccionadas() {
         int[] filas = tabla.getSelectedRows();
         if (filas.length > 0) {
-             if (JOptionPane.showConfirmDialog(this, "¿Borrar?", "Confirma", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+             if (JOptionPane.showConfirmDialog(this, "¿Borrar seleccionados?", "Confirma", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                 for (int i = filas.length - 1; i >= 0; i--) {
                     String cod = modeloTabla.getValueAt(filas[i], 0).toString();
                     catalogo.buscarPorCodigo(cod).ifPresent(c -> c.setSaldo(0));
@@ -398,29 +444,21 @@ public class UIPrincipal extends JFrame {
     }
     
     private void limpiarTodo() {
-        catalogo.reiniciarSaldos();
-        modeloTabla.setRowCount(0);
-        txtMonto.setText("");
+        if (JOptionPane.showConfirmDialog(this, "¿Seguro de limpiar todo?", "Confirma", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            catalogo.reiniciarSaldos();
+            modeloTabla.setRowCount(0);
+            txtMonto.setText("");
+        }
     }
 
-private void verificarCatalogo() {
+    private void verificarCatalogo() {
         if (!catalogo.isCargadoCorrectamente()) {
             JOptionPane.showMessageDialog(this,
                 "Error al cargar el catálogo:\n" + catalogo.getMensajeError() +
                 "\n\nAsegúrese de que 'catalogo_cuentas.xlsx' esté en el directorio.",
                 "Error", JOptionPane.ERROR_MESSAGE);
         } else {
-            // --- CÓDIGO DE DIAGNÓSTICO (NUEVO) ---
-            System.out.println("========================================");
-            System.out.println("🔍 DIAGNÓSTICO DE CARGA DE EXCEL");
-            System.out.println("Total de cuentas leídas: " + catalogo.getCuentas().size());
-            for (CuentaContable c : catalogo.getCuentas()) {
-                System.out.println("Cuenta: [" + c.getNombre() + "] " +
-                                   "| Tipo: [" + c.getTipo() + "] " + 
-                                   "| Grupo: [" + c.getGrupo() + "]");
-            }
-            System.out.println("========================================");
-            // -------------------------------------
+            System.out.println("Catálogo cargado correctamente: " + catalogo.getCuentas().size() + " cuentas.");
         }
     }
 
@@ -432,45 +470,4 @@ private void verificarCatalogo() {
         try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
         SwingUtilities.invokeLater(() -> new UIPrincipal().setVisible(true));
     }
-    
-    public static List<CuentaContable> cargarCuentasPrueba() {
-
-    List<CuentaContable> cuentas = new ArrayList<>();
-
-    cuentas.add(new CuentaContable("4002", "Ventas Totales", "Ingreso", "Ventas", 1950000));
-    cuentas.add(new CuentaContable("4101", "Devoluciones sobre ventas", "Gasto", "Ventas – Deducciones", 30000));
-    cuentas.add(new CuentaContable("4102", "Descuentos sobre ventas", "Gasto", "Ventas – Deducciones", 20000));
-
-    cuentas.add(new CuentaContable("5001", "Inventario inicial", "Gasto", "Costo de ventas", 1250000));
-    cuentas.add(new CuentaContable("5003", "Compras", "Gasto", "Costo de ventas", 800000));
-    cuentas.add(new CuentaContable("5102", "Gastos de compra", "Gasto", "Costo de ventas", 20000));
-    cuentas.add(new CuentaContable("5004", "Devoluciones sobre compras", "Gasto", "Costo de ventas", 60000));
-    cuentas.add(new CuentaContable("5101", "Descuentos sobre compras", "Gasto", "Costo de ventas", 10000));
-    cuentas.add(new CuentaContable("5002", "Inventario final", "Gasto", "Costo de ventas", 600000));
-
-    cuentas.add(new CuentaContable("6001", "Renta del almacén", "Gasto", "Gastos de venta", 17000));
-    cuentas.add(new CuentaContable("6003", "Propaganda y publicidad", "Gasto", "Gastos de venta", 9000));
-    cuentas.add(new CuentaContable("6011", "Sueldos de agentes y dependientes", "Gasto", "Gastos de venta", 32000));
-    cuentas.add(new CuentaContable("6004", "Comisiones de agentes", "Gasto", "Gastos de venta", 16000));
-    cuentas.add(new CuentaContable("8005", "Consumo de luz de almacén", "Gasto", "Gastos de venta", 1000));
-
-    cuentas.add(new CuentaContable("6006", "Renta de oficinas", "Gasto", "Gastos de administración", 12000));
-    cuentas.add(new CuentaContable("6007", "Sueldos del personal de oficinas", "Gasto", "Gastos de administración", 43000));
-    cuentas.add(new CuentaContable("6008", "Papelería y útiles", "Gasto", "Gastos de administración", 3000));
-    cuentas.add(new CuentaContable("6009", "Consumo de luz de oficinas", "Gasto", "Gastos de administración", 2000));
-
-    cuentas.add(new CuentaContable("7005", "Intereses cobrados", "Ingreso", "Productos financieros", 7000));
-
-    cuentas.add(new CuentaContable("8006", "Pérdida", "Gasto", "Gastos financieros", 5000));
-    cuentas.add(new CuentaContable("8007", "Pérdida en venta de acciones", "Gasto", "Otros gastos", 6000));
-    cuentas.add(new CuentaContable("8003", "Pérdida en venta de mobiliario", "Gasto", "Otros gastos", 20000));
-
-    cuentas.add(new CuentaContable("8004", "Comisiones cobradas", "Ingreso", "Otros productos", 2000));
-    cuentas.add(new CuentaContable("8008", "Dividendos cobrados", "Ingreso", "Otros productos", 4000));
-
-    cuentas.add(new CuentaContable("7004", "Intereses pagados", "Gasto", "Gastos financieros", 5000));
-    cuentas.add(new CuentaContable("7002", "Pérdida en cambios", "Gasto", "Productos financieros", 5000));
-
-    return cuentas;
-}
 }

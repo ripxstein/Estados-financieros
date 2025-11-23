@@ -4,6 +4,7 @@ import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
+import com.lowagie.text.Image;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
@@ -37,9 +38,10 @@ public class GeneradorPDF {
 
     private static int contadorIndice = 1;
 
+    // --- CAMBIO AQUI: Se agregó el parámetro 'rutaLogo' al final ---
     public static void generarPDF(String empresa, String titulo, String periodo,
             List<CuentaContable> cuentas, String tipoFormato, String nombreArchivo,
-            String elaboro, String autorizo) throws Exception {
+            String elaboro, String autorizo, String rutaLogo) throws Exception {
 
         boolean esFormatoCuenta = tipoFormato != null && tipoFormato.equalsIgnoreCase("Cuenta");
         Rectangle tamanoPagina = esFormatoCuenta ? PageSize.A4.rotate() : PageSize.A4;
@@ -47,6 +49,23 @@ public class GeneradorPDF {
         Document doc = new Document(tamanoPagina, 30, 30, 40, 40);
         PdfWriter.getInstance(doc, new FileOutputStream(nombreArchivo));
         doc.open();
+
+        // --- LÓGICA PARA CARGAR EL LOGO SELECCIONADO ---
+        if (rutaLogo != null && !rutaLogo.isEmpty()) {
+            try {
+                Image logo = Image.getInstance(rutaLogo);
+                logo.scaleToFit(60, 60); // Ajustar tamaño máximo
+                
+                // Posición Absoluta: X=40 (margen izq), Y=AlturaPagina - 70 (margen sup)
+                float posY = tamanoPagina.getHeight() - 70;
+                logo.setAbsolutePosition(40, posY);
+                
+                doc.add(logo);
+            } catch (Exception e) {
+                System.err.println("No se pudo cargar el logo seleccionado: " + e.getMessage());
+            }
+        }
+        // -----------------------------------------------
 
         if (titulo.toLowerCase().contains("balance")) {
             agregarEncabezadoBalance(doc, empresa, titulo, periodo);
@@ -79,9 +98,6 @@ public class GeneradorPDF {
         doc.add(pLinea2);
     }
 
-    // ========================================================================
-    //  ESTADO DE RESULTADOS
-    // ========================================================================
     private static void generarEstadoResultados(Document doc, String empresa, String periodo, List<CuentaContable> cuentas) throws DocumentException {
         PdfPTable tabla = new PdfPTable(5);
         tabla.setWidthPercentage(100);
@@ -261,13 +277,10 @@ public class GeneradorPDF {
             agregarFilaTextoCentradoCursivaMonto(tabla, lblOtros, otrosNeto, 4, Color.WHITE, true, false);
         }
 
-        // LÓGICA ARITMÉTICA CORREGIDA
         double utilidadAntesImp;
         if (otrosNeto < 0) {
-            // Pérdida Otros: Se suma algebraicamente (aumenta pérdida o reduce utilidad)
-            utilidadAntesImp = utilidadOperacion + otrosNeto; // Corrección de variable
+            utilidadAntesImp = utilidadOperacion + otrosNeto; 
         } else {
-            // Utilidad Otros: Se resta de la Op (según tu lógica específica)
             utilidadAntesImp = utilidadOperacion - otrosNeto;
         }
 
@@ -582,27 +595,6 @@ public class GeneradorPDF {
         }
     }
 
-    private static void agregarFilaTituloCentradoCursiva(PdfPTable tabla, String titulo) {
-        PdfPCell c = new PdfPCell(new Phrase(titulo, F_ITALICA));
-        c.setHorizontalAlignment(Element.ALIGN_CENTER);
-        c.setBorder(Rectangle.BOX);
-        tabla.addCell(c);
-        for (int i = 0; i < 4; i++) {
-            agregarCeldaVaciaConBorde(tabla);
-        }
-    }
-
-    private static void agregarFilaMontoFlotante(PdfPTable tabla, double monto, int col, boolean lineaCorte) {
-        agregarCeldaVaciaConBorde(tabla);
-        for (int i = 1; i <= 4; i++) {
-            if (i == col) {
-                agregarCeldaMontoER(tabla, monto, lineaCorte, true);
-            } else {
-                agregarCeldaVaciaConBorde(tabla);
-            }
-        }
-    }
-
     private static void agregarCeldaMontoER(PdfPTable tabla, double m, boolean l, boolean llevaSigno) {
         String texto = formatearMoneda(m, llevaSigno);
         PdfPCell c = new PdfPCell(new Phrase(texto, F_NORMAL));
@@ -659,7 +651,6 @@ public class GeneradorPDF {
         totalPasivo += procesarGrupoBalanceCuenta(tablaPasivoCapital, pasivos, "Diferido", "Créditos Diferidos", 2, 3, true, false);
         agregarFilaTotalCuenta(tablaPasivoCapital, "Total Pasivo", totalPasivo, 3, true);
         agregarFilaTituloSeccion(tablaPasivoCapital, "Capital Contable", 4);
-        //procesarGrupoBalanceCuenta(tablaPasivoCapital, capital, "", "", 2, 3, true, true);
 
         double tc = procesarGrupoBalanceReporte(tablaPasivoCapital, capital, "Capital", "Capital Contable", 2, 3, false, true);
 
@@ -774,7 +765,7 @@ public class GeneradorPDF {
         agregarFilaTituloSeccion(tabla, "Capital Contable", 5);
         procesarGrupoBalanceReporte(tabla, cap, "", "", 4, 5, true, true);
         double tc = procesarGrupoBalanceReporte(tabla, cap, "Capital", "Capital Contable", 4, 5, false, true);
-        //double tc = ta - tp; 
+        
         agregarFilaTotalReporte(tabla, "Capital Contable", tc, 5, false);
         doc.add(tabla);
     }
@@ -904,7 +895,6 @@ public class GeneradorPDF {
         return l.stream().filter(c -> c.getTipo().equalsIgnoreCase(t)).collect(Collectors.toList());
     }
 
-    // CORRECCIÓN 4: Firmas centradas al 100%
     private static void agregarFirmas(Document doc, String e, String a) throws DocumentException {
         doc.add(new Paragraph("\n\n\n"));
         PdfPTable t = new PdfPTable(2);

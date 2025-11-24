@@ -655,8 +655,8 @@ public class GeneradorPDF {
         double tc = procesarGrupoBalanceReporte(tablaPasivoCapital, capital, "Capital", "Capital Contable", 2, 3, false, true);
 
         double totalCapitalCalculado = totalActivo - totalPasivo;
-        agregarFilaTotalCuenta(tablaPasivoCapital, "Capital Contable", tc, 3, true);
-        agregarFilaGranTotalCuenta(tablaPasivoCapital, "Total Pasivo + Capital Contable", totalPasivo + tc);
+        agregarFilaTotalCuenta(tablaPasivoCapital, "Capital Contable",  tc, 3, true);
+        agregarFilaGranTotalCuenta(tablaPasivoCapital, "Capital", tc);
         PdfPCell celdaDerecha = new PdfPCell(tablaPasivoCapital);
         celdaDerecha.setBorder(Rectangle.NO_BORDER);
         celdaDerecha.setPaddingLeft(10f);
@@ -763,7 +763,7 @@ public class GeneradorPDF {
         tp += procesarGrupoBalanceReporte(tabla, pas, "Diferido", "Créditos Diferidos", 4, 5, true, false);
         agregarFilaTotalReporte(tabla, "Total Pasivo", tp, 5, true);
         agregarFilaTituloSeccion(tabla, "Capital Contable", 5);
-        procesarGrupoBalanceReporte(tabla, cap, "", "", 4, 5, true, true);
+        
         double tc = procesarGrupoBalanceReporte(tabla, cap, "Capital", "Capital Contable", 4, 5, false, true);
         
         agregarFilaTotalReporte(tabla, "Capital Contable", tc, 5, false);
